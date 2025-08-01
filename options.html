@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Env Color Banner – Options</title>
+<link rel="stylesheet" href="options.css" />
+<section class="wrap">
+  <h1>Env Color Banner – Rules</h1>
+  <p class="hint">Rules are matched top-to-bottom against the full URL (glob). Example: <code>*://*.pro*.cfapps.*/*</code></p>
+
+  <table id="rules">
+    <thead>
+      <tr>
+        <th>Enabled</th>
+        <th>Pattern (glob)</th>
+        <th>Label</th>
+        <th>Color</th>
+        <th>Severity</th>
+        <th>Order</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="controls">
+    <button id="add">Add rule</button>
+    <button id="defaults">Restore defaults</button>
+    <button id="test">Test on current tab</button>
+    <span id="status" role="status"></span>
+  </div>
+
+  <details class="help">
+    <summary>Pattern help</summary>
+    <ul>
+      <li><code>*</code> matches any characters; <code>?</code> matches one.</li>
+      <li>Examples:
+        <ul>
+          <li>PROD: <code>*://*.pro*.cfapps.*/*</code></li>
+          <li>QA: <code>*://*.qa*.cfapps.*/*</code></li>
+          <li>Local HTTP: <code>*://localhost*/*</code>, <code>*://127.0.0.1*/*</code></li>
+        </ul>
+      </li>
+    </ul>
+  </details>
+</section>
+<script src="options.js"></script>
