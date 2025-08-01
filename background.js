@@ -1,11 +1,85 @@
-/* Background: rule evaluation, badge/overlay, and control messages. */
+/*
+  Combined background script for Manifest V3.
+  Order: defaults.js, storage.js, background.js
+*/
 
+// From defaults.js
+function hash32(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function stableId(rule) {
+  const t = `${rule.pattern}|${rule.label}|${rule.color}|${rule.severity}`;
+  return `r_${hash32(t).toString(36)}`;
+}
+
+function getDefaultRules() {
+  const raw = [
+    { pattern: "*://*-pro[0-9]*.cfapps.*/*", label: "PROD",  color: "#dc2626", severity: "high",   enabled: true },
+    { pattern: "*://*-qa[0-9]*.cfapps.*/*",  label: "QA",    color: "#facc15", severity: "medium", enabled: true },
+    { pattern: "*://localhost*/*",           label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://127.0.0.1*/*",           label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://192.168.*/*",            label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://10.*/*",                 label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://172.1[6-9].*/*",         label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://172.2[0-9].*/*",         label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true },
+    { pattern: "*://172.3[0-1].*/*",         label: "LOCAL", color: "#16a34a", severity: "low",    enabled: true }
+  ];
+  return raw.map(r => ({ ...r, id: stableId(r) }));
+}
+
+
+// From storage.js
 const API = typeof browser !== "undefined" ? browser : chrome;
+
+function normalizeRules(list) {
+  const seen = new Set();
+  const out = [];
+  for (const r of Array.isArray(list) ? list : []) {
+    const rule = {
+      enabled: true,
+      severity: "low",
+      pattern: "",
+      label: "",
+      color: "#888888",
+      ...r,
+    };
+    const key = `${rule.pattern}|${rule.label}|${rule.color}|${rule.severity}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...rule, id: rule.id || stableId(rule) });
+  }
+  return out;
+}
+
+async function getRules() {
+  try {
+    const res = await API.storage.sync.get({ rules: null });
+    const base = Array.isArray(res.rules) && res.rules.length ? res.rules : getDefaultRules();
+    return normalizeRules(base);
+  } catch {
+    return normalizeRules(getDefaultRules());
+  }
+}
+
+async function saveRules(rules) {
+  const clean = normalizeRules(rules);
+  await API.storage.sync.set({ rules: clean });
+  return clean;
+}
+
+
+// From background.js
 const ACTION = (API && (API.action || API.browserAction)) || null;
 
-/** Converts a simple glob to a case-insensitive RegExp with [class] quantifiers. */
 function globToRegex(glob) {
-  const esc = s => s.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+  // const esc = s => s.replace(/[|\\{}()[\\]^$+?.]/g, "\\$&");
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   let i = 0, out = "^";
   while (i < glob.length) {
     const c = glob[i];
@@ -29,7 +103,6 @@ function globToRegex(glob) {
   return new RegExp(out, "i");
 }
 
-/** Returns true if the page can host a content script overlay. */
 function isContentEligible(url) {
   try {
     const u = new URL(url);
@@ -37,7 +110,6 @@ function isContentEligible(url) {
   } catch { return false; }
 }
 
-/** Badge helpers (MV2/MV3). */
 function setBadge(label, color) {
   if (!ACTION) return;
   if (!label || !color) { ACTION.setBadgeText({ text: "" }); return; }
@@ -46,7 +118,6 @@ function setBadge(label, color) {
   ACTION.setBadgeBackgroundColor?.({ color });
 }
 
-/** Overlay messaging; ignored on non-eligible pages. */
 function setOverlay(tabId, url, payload) {
   if (!isContentEligible(url)) return;
   try {
@@ -71,7 +142,6 @@ async function bestContentTab() {
   return null;
 }
 
-/** Evaluate a specific tab. */
 async function applyForTabId(tabId, reason) {
   try {
     if (tabId == null) return;
@@ -81,7 +151,7 @@ async function applyForTabId(tabId, reason) {
     const url = tab.pendingUrl || tab.url || "";
     if (!url) { setBadge(null, null); setOverlay(tabId, "", null); return; }
 
-    const rules = typeof getRules === "function" ? await getRules() : [];
+    const rules = await getRules();
     let match = null;
     for (const r of rules) {
       if (!r || r.enabled === false) continue;
@@ -98,13 +168,11 @@ async function applyForTabId(tabId, reason) {
   } catch {}
 }
 
-/** Evaluate current focus. */
 async function applyForFocused(reason) {
   const t = await getActiveTab();
   if (t?.id != null) await applyForTabId(t.id, reason);
 }
 
-/** Wiring. */
 (function init() {
   API.tabs.onActivated.addListener(({ tabId }) => applyForTabId(tabId, "tabs.onActivated"));
 
@@ -122,18 +190,13 @@ async function applyForFocused(reason) {
   API.webNavigation?.onCommitted?.addListener((d) => { if (d?.tabId != null) applyForTabId(d.tabId, "webNavigation.onCommitted"); });
   API.webNavigation?.onCompleted?.addListener((d) => { if (d?.tabId != null) applyForTabId(d.tabId, "webNavigation.onCompleted"); });
 
-  API.runtime.onMessage.addListener(async (msg, sender) => {
-    if (msg?.type === "env-color-banner:ping") {
-      if (sender?.tab?.id != null) applyForTabId(sender.tab.id, "content ping");
-      else applyForFocused("content ping (no tab)");
-    }
-    if (msg?.type === "ecb:reapplyActive") applyForFocused("options reapply");
-    if (msg?.type === "ecb:applyForTabId" && typeof msg.tabId === "number") applyForTabId(msg.tabId, "options explicit");
-    if (msg?.type === "ecb:applyBestTab") {
-      const t = await bestContentTab();
-      if (t?.id != null) applyForTabId(t.id, "options best");
-    }
-  });
+
+  API.runtime.onMessage.addListener((msg, sender) => {
+  if (msg?.type === "ecb:getRules")        return getRules();
+  if (msg?.type === "ecb:saveRules")       return saveRules(msg.payload);
+  if (msg?.type === "ecb:getDefaultRules") return Promise.resolve(getDefaultRules());
+});
+
 
   (API.action || API.browserAction)?.onClicked?.addListener(() => {
     if (API.runtime.openOptionsPage) API.runtime.openOptionsPage();

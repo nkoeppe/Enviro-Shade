@@ -1,11 +1,14 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Env Color Banner",
   "version": "1.1.0",
-  "description": "Prominent page overlay (chip + diagonal watermark) and optional badge indicating LOCAL/QA/PROD. Fully configurable URL patterns and colors.",
-  "permissions": ["tabs", "theme", "webNavigation", "storage", "<all_urls>"],
+  "description": "A prominent, customizable banner and watermark to clearly identify your web environments (LOCAL, QA, PROD).",
+  "author": "Nico",
+  "homepage_url": "https://github.com/nicofancy/instance-background-zen-browser",
+  "permissions": ["tabs", "storage", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
   "background": {
-    "scripts": ["defaults.js", "storage.js", "background.js"]
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
@@ -19,7 +22,7 @@
     "page": "options.html",
     "open_in_tab": true
   },
-  "browser_action": {
+  "action": {
     "default_title": "Env Color Banner"
   },
   "icons": {
@@ -30,8 +33,8 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "strict_min_version": "102.0",
+      "strict_min_version": "109.0",
       "id": "env-color-banner@fancyguysdev.de"
-      }
+    }
   }
 }

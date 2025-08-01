@@ -28,27 +28,32 @@ function toast(msg, ms = 1200) {
 
 /** Glob → RegExp with [class] quantifiers. */
 function sameMatcher(glob) {
-  const esc = s => s.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+  /** Escapes regex metacharacters in a literal fragment. */
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   let i = 0, out = "^";
   while (i < glob.length) {
     const c = glob[i];
-    if (c === "*") out += ".*", i++;
-    else if (c === "?") out += ".", i++;
-    else if (c === "[") {
+    if (c === "*") { out += ".*"; i++; continue; }
+    if (c === "?") { out += ".";  i++; continue; }
+    if (c === "[") {
       const j = glob.indexOf("]", i + 1);
       if (j !== -1) {
         const cls = glob.slice(i, j + 1);
         const q = glob[j + 1];
-        if (q === "*") out += `(?:${cls})*`, i = j + 2;
-        else if (q === "+") out += `(?:${cls})+`, i = j + 2;
-        else if (q === "?") out += `(?:${cls})?`, i = j + 2;
-        else out += cls, i = j + 1;
-      } else out += "\\[", i++;
-    } else out += esc(c), i++;
+        if (q === "*") { out += `(?:${cls})*`; i = j + 2; continue; }
+        if (q === "+") { out += `(?:${cls})+`; i = j + 2; continue; }
+        if (q === "?") { out += `(?:${cls})?`; i = j + 2; continue; }
+        out += cls; i = j + 1; continue;
+      }
+      out += "\\["; i++; continue;
+    }
+    out += esc(c); i++;
   }
   out += "$";
   return new RegExp(out, "i");
 }
+
 
 /** High-contrast text for a hex color. */
 function textColorFor(hex){
@@ -80,16 +85,47 @@ async function getBestPageTab() {
   } catch { return null; }
 }
 
+async function rpc(msg) {
+  if (typeof browser !== "undefined" && browser.runtime?.sendMessage) {
+    return browser.runtime.sendMessage(msg);
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage(msg, (res) => {
+        const err = chrome.runtime.lastError;
+        if (err) reject(err);
+        else resolve(res);
+      });
+    } catch (e) { reject(e); }
+  });
+}
+
 /* ---------- persistence ---------- */
-async function load(){ state.rules = await (typeof getRules === "function" ? getRules() : []); }
-async function saveAndRender(msg="Saved"){
+async function load() {
+  try {
+    const res = await rpc({ type: "ecb:getRules" });
+    state.rules = Array.isArray(res) ? res : Array.isArray(res?.rules) ? res.rules : null;
+    if (!Array.isArray(state.rules) || state.rules.length === 0) {
+      const defs = await rpc({ type: "ecb:getDefaultRules" });
+      state.rules = Array.isArray(defs) ? defs : [];
+    }
+  } catch {
+    state.rules = [];
+  }
+}
+
+async function saveAndRender(msg = "Saved") {
   state.saving = true;
-  await (typeof saveRules === "function" ? saveRules(state.rules) : Promise.resolve());
-  state.saving = false;
-  toast(msg);
+  try {
+    await rpc({ type: "ecb:saveRules", payload: state.rules });
+    toast(msg);
+  } finally {
+    state.saving = false;
+  }
   await render();
   if (state.preview) runPreview(state.preview.url.value.trim());
 }
+
 
 /* ---------- DnD (background-only) ---------- */
 function wireDnD(tr){
@@ -411,19 +447,20 @@ function applyOverlayPreview(payload){
 async function openTabPopover(anchorBtn, onPick) {
   let tabs = [];
   try {
-    if (API.windows?.getAll) {
-      const wins = await API.windows.getAll({ populate: true });
-      for (const w of wins) for (const t of (w.tabs || [])) {
-        const url = t.url || "";
-        if (!isEligible(url)) continue;
-        tabs.push({ ...t, _winId: w.id, _focused: !!w.focused });
-      }
-    } else {
-      const all = await API.tabs.query({});
-      tabs = all.filter(t => isEligible(t.url || ""))
-                .map(t => ({ ...t, _winId: t.windowId, _focused: false }));
-    }
-  } catch { tabs = []; }
+    const allTabs = await API.tabs.query({});
+    const allWindows = await API.windows.getAll();
+    const focusedWindow = allWindows.find(w => w.focused);
+
+    tabs = allTabs
+      .filter(t => isEligible(t.url || ""))
+      .map(t => ({
+        ...t,
+        _winId: t.windowId,
+        _focused: focusedWindow ? t.windowId === focusedWindow.id : false,
+      }));
+  } catch {
+    tabs = [];
+  }
 
   tabs.sort((a,b)=>
     (b._focused - a._focused) ||
@@ -507,28 +544,46 @@ async function openTabPopover(anchorBtn, onPick) {
 }
 
 /* ---------- actions ---------- */
-els.add.addEventListener("click", async ()=>{
-  const blank={ pattern:"*://example.com/*", label:"ENV", color:"#888888", severity:"low", enabled:true };
-  blank.id=typeof stableId==="function" ? stableId(blank) : String(Date.now());
+els.add.addEventListener("click", async () => {
+  const blank = {
+    pattern: "*://example.com/*",
+    label: "ENV",
+    color: "#888888",
+    severity: "low",
+    enabled: true,
+    id: `r_${Math.random().toString(36).substr(2, 9)}`,
+  };
   state.rules.push(blank);
   await saveAndRender("Added");
 });
 
-els.addFromTabs.addEventListener("click",(e)=>openTabPopover(e.currentTarget, async (tab)=>{
-  const base={ pattern: patternFromUrlSmart(tab.url), ...guessMeta(tab.url), enabled:true };
-  const id=typeof stableId==="function" ? stableId(base) : String(Date.now());
-  state.rules.push({ id, ...base });
-  await saveAndRender("Added from tab");
-  const pv = ensurePreview();
-  pv.modeState = "url";
-  pv.url.value = tab.url;
-  runPreview(tab.url);
-}));
+els.addFromTabs.addEventListener("click", (e) =>
+  openTabPopover(e.currentTarget, async (tab) => {
+    const base = {
+      pattern: patternFromUrlSmart(tab.url),
+      ...guessMeta(tab.url),
+      enabled: true,
+      id: `r_${Math.random().toString(36).substr(2, 9)}`,
+    };
+    state.rules.push({ ...base });
+    await saveAndRender("Added from tab");
+    const pv = ensurePreview();
+    pv.modeState = "url";
+    pv.url.value = tab.url;
+    runPreview(tab.url);
+  })
+);
 
-els.defaults.addEventListener("click", async ()=>{
-  state.rules = typeof getDefaultRules==="function" ? getDefaultRules() : [];
-  await saveAndRender("Defaults restored");
+els.defaults.addEventListener("click", async () => {
+  try {
+    const defs = await rpc({ type: "ecb:getDefaultRules" });
+    state.rules = Array.isArray(defs) ? defs : [];
+    await saveAndRender("Defaults restored");
+  } catch {
+    toast("Failed to load defaults");
+  }
 });
+
 
 /* External changes */
 API.storage.onChanged.addListener((changes, area)=>{
@@ -537,9 +592,12 @@ API.storage.onChanged.addListener((changes, area)=>{
 
 /* ---------- render ---------- */
 async function render(){
-  els.tbody.textContent="";
-  state.rules.forEach((r,i)=>els.tbody.appendChild(renderRow(r,i,state.rules.length)));
+  els.tbody.textContent = "";
+  const list = Array.isArray(state.rules) ? state.rules : [];
+  list.forEach((r,i)=> els.tbody.appendChild(renderRow(r, i, list.length)));
 }
+
+
 
 /* ---------- heuristics ---------- */
 function patternFromUrlSmart(rawUrl) {
