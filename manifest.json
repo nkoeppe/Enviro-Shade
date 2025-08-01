@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Env Color Banner",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A prominent, customizable banner and watermark to clearly identify your web environments (LOCAL, QA, PROD).",
   "author": "Nico",
   "homepage_url": "https://github.com/nicofancy/instance-background-zen-browser",

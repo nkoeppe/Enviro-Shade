@@ -210,25 +210,6 @@ function textColorFor(hex){
 
 function isEligible(url){ try{ const u=new URL(url); return u.protocol==="http:"||u.protocol==="https:"; }catch{return false;} }
 
-/** Prefer focused-window http(s) tab. */
-async function getBestPageTab() {
-  try {
-    const wins = await API.windows.getAll({ populate: true });
-    const consider = [];
-    for (const w of wins) for (const t of (w.tabs || [])) {
-      const url = t.url || t.pendingUrl || "";
-      if (!isEligible(url)) continue;
-      consider.push({ tab: t, focused: !!w.focused });
-    }
-    consider.sort((a,b)=>
-      (b.focused - a.focused) ||
-      ((b.tab.active?1:0) - (a.tab.active?1:0)) ||
-      ((b.tab.lastAccessed||0) - (a.tab.lastAccessed||0))
-    );
-    return consider[0]?.tab || null;
-  } catch { return null; }
-}
-
 async function rpc(msg) {
   if (typeof browser !== "undefined" && browser.runtime?.sendMessage) {
     return browser.runtime.sendMessage(msg);
@@ -393,7 +374,6 @@ function ensurePreview(){
     <div class="preview-row">
       <input class="pv-url" type="text" placeholder="Paste a URL or pick a tab…" />
       <button class="pv-pick">Pick from open tabs</button>
-      <button class="pv-best">Use visible page</button>
       <button class="pv-clear">Clear</button>
       <span class="pv-result"></span>
     </div>
@@ -418,7 +398,6 @@ function ensurePreview(){
     root: wrap,
     url: wrap.querySelector(".pv-url"),
     pick: wrap.querySelector(".pv-pick"),
-    best: wrap.querySelector(".pv-best"),
     clear: wrap.querySelector(".pv-clear"),
     result: wrap.querySelector(".pv-result"),
     stage: wrap.querySelector(".pv-stage"),
@@ -442,10 +421,6 @@ function ensurePreview(){
     api.url.value = tab.url;
     run();
   }));
-  api.best.addEventListener("click", async ()=>{
-    const t = await getBestPageTab();
-    if (t?.url) { api.modeState = "url"; api.url.value = t.url; run(); }
-  });
   api.clear.addEventListener("click", clearPreviewAll);
 
   document.addEventListener("pointerdown", (e)=>{

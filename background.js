@@ -133,15 +133,6 @@ async function getActiveTab() {
   return null;
 }
 
-async function bestContentTab() {
-  try {
-    const all = await API.tabs.query({ currentWindow: true });
-    for (const t of all) if (t.active && isContentEligible(t.url || t.pendingUrl || "")) return t;
-    for (const t of all) if (isContentEligible(t.url || t.pendingUrl || "")) return t;
-  } catch {}
-  return null;
-}
-
 async function applyForTabId(tabId, reason) {
   try {
     if (tabId == null) return;

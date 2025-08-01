@@ -2,9 +2,6 @@
 
 A browser extension for developers that adds a prominent, customizable banner and watermark to web pages, making it easy to identify which environment (e.g., `LOCAL`, `QA`, `PROD`) you are currently on.
 
-![Screenshot of the extension in action](https://raw.githubusercontent.com/user/repo/main/docs/screenshot.png)
-*(This is a placeholder image. You should replace it with an actual screenshot of your extension.)*
-
 ## Features
 
 *   **Visual Environment Indicators:** Displays a highly visible color chip and a diagonal watermark on pages that match your configured rules.
