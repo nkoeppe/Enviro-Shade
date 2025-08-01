@@ -19,18 +19,163 @@ const els = {
 const state = { rules: [], saving: false, preview: null };
 
 /** Status toast. */
-function toast(msg, ms = 1200) {
+function toast(msg, ms = 2000) {
   if (!els.status) return;
   els.status.textContent = msg;
+  els.status.style.opacity = "1";
+  els.status.style.transform = "translateX(0)";
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => (els.status.textContent = ""), ms);
+  toast._t = setTimeout(() => {
+    els.status.style.opacity = "0";
+    els.status.style.transform = "translateX(-10px)";
+    setTimeout(() => (els.status.textContent = ""), 300);
+  }, ms);
 }
+
+/** Button loading state. */
+function setButtonLoading(btn, loading = true) {
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.classList.add("loading");
+    btn.dataset.originalText = btn.textContent;
+    btn.textContent = "Loading...";
+  } else {
+    btn.disabled = false;
+    btn.classList.remove("loading");
+    if (btn.dataset.originalText) {
+      btn.textContent = btn.dataset.originalText;
+      delete btn.dataset.originalText;
+    }
+  }
+}
+
+/** Wraps an async handler with loading state + feedback. */
+async function withButtonLoading(btn, fn, onSuccessMessage) {
+  setButtonLoading(btn, true);
+  try {
+    await fn();
+    if (onSuccessMessage) showActionFeedback("success", onSuccessMessage);
+  } catch (err) {
+    showActionFeedback("error", (err && err.message) || "Something went wrong");
+    throw err;
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+/** Global ripple (event delegation so it works on dynamic buttons). */
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const ripple = document.createElement("span");
+  const size = Math.max(rect.width, rect.height);
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top - size / 2;
+  ripple.style.cssText = `
+    position:absolute;width:${size}px;height:${size}px;left:${x}px;top:${y}px;
+    background:rgba(255,255,255,0.3);border-radius:50%;transform:scale(0);
+    animation:ripple 0.6s linear;pointer-events:none;
+  `;
+  btn.style.position = "relative";
+  btn.style.overflow = "hidden";
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+});
+
+/** Ripple keyframes. */
+const style = document.createElement("style");
+style.textContent = `
+  @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+`;
+document.head.appendChild(style);
+
+/** Subtle hover/focus elevation. */
+document.querySelectorAll("input, select, button").forEach((el) => {
+  el.addEventListener("mouseenter", function () { this.style.transform = "translateY(-1px)"; });
+  el.addEventListener("mouseleave", function () { if (!this.matches(":focus")) this.style.transform = ""; });
+  el.addEventListener("focus", function () { this.style.transform = "translateY(-1px)"; });
+  el.addEventListener("blur", function () { this.style.transform = ""; });
+});
+
+/** Smooth scroll. */
+document.documentElement.style.scrollBehavior = "smooth";
+
+/** Decorative particles on load. */
+function createParticles() {
+  const particleCount = 30;
+  const particles = [];
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement("div");
+    particle.style.cssText = `
+      position: fixed; width: 2px; height: 2px; background: rgba(59,130,246,0.5);
+      border-radius: 50%; pointer-events: none; z-index: -1;
+      left: ${Math.random() * 100}vw; top: ${Math.random() * 100}vh;
+      animation: float ${5 + Math.random() * 10}s ease-in-out infinite;
+      animation-delay: ${Math.random() * 5}s;
+    `;
+    document.body.appendChild(particle);
+    particles.push(particle);
+  }
+  setTimeout(() => { particles.forEach((p) => p.remove()); }, 15000);
+}
+document.addEventListener("DOMContentLoaded", () => { setTimeout(createParticles, 500); });
+
+/** Inline validation accent. */
+document.querySelectorAll('input[type="text"]').forEach((input) => {
+  input.addEventListener("input", function () {
+    if (this.value.trim()) {
+      this.style.borderColor = "var(--accent-success)";
+      this.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.1)";
+    } else {
+      this.style.borderColor = "";
+      this.style.boxShadow = "";
+    }
+  });
+});
+
+/** Action feedback toast. */
+function showActionFeedback(type, message) {
+  const feedback = document.createElement("div");
+  feedback.style.cssText = `
+    position: fixed; top: 2rem; right: 2rem; padding: 1rem 1.5rem;
+    background: ${type === "success" ? "rgba(16,185,129,0.9)" : "rgba(239,68,68,0.9)"};
+    color: #fff; border-radius: 12px; font-weight: 600; z-index: 1000;
+    transform: translateX(100%); transition: transform 0.3s ease;
+    backdrop-filter: blur(8px); box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  `;
+  feedback.textContent = message;
+  document.body.appendChild(feedback);
+  setTimeout(() => (feedback.style.transform = "translateX(0)"), 100);
+  setTimeout(() => {
+    feedback.style.transform = "translateX(100%)";
+    setTimeout(() => feedback.remove(), 300);
+  }, 3000);
+}
+
+/** Key shortcuts. */
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key) {
+      case "n": e.preventDefault(); els.add?.click(); break;
+      case "r": e.preventDefault(); els.defaults?.click(); break;
+    }
+  }
+});
+
+/** Fade-in on load. */
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    document.body.style.transition = "opacity 0.5s ease";
+    document.body.style.opacity = "1";
+  }, 100);
+});
 
 /** Glob → RegExp with [class] quantifiers. */
 function sameMatcher(glob) {
-  /** Escapes regex metacharacters in a literal fragment. */
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
   let i = 0, out = "^";
   while (i < glob.length) {
     const c = glob[i];
@@ -53,7 +198,6 @@ function sameMatcher(glob) {
   out += "$";
   return new RegExp(out, "i");
 }
-
 
 /** High-contrast text for a hex color. */
 function textColorFor(hex){
@@ -126,30 +270,25 @@ async function saveAndRender(msg = "Saved") {
   if (state.preview) runPreview(state.preview.url.value.trim());
 }
 
-
 /* ---------- DnD (background-only) ---------- */
 function wireDnD(tr){
   tr.tabIndex = -1;
   let allowDrag = false;
-
   tr.addEventListener("pointerdown", (e)=>{
     const onControl = !!e.target.closest("input,select,textarea,button");
     allowDrag = !onControl && e.button === 0;
     tr.draggable = allowDrag;
   });
-
   tr.addEventListener("dragstart", e => {
     if (!allowDrag) { e.preventDefault(); return; }
     tr.classList.add("dragging");
     e.dataTransfer.setData("text/plain", tr.dataset.index);
   });
-
   tr.addEventListener("dragend", ()=>{
     tr.classList.remove("dragging");
     tr.draggable = false;
     allowDrag = false;
   });
-
   tr.addEventListener("dragover", e => e.preventDefault());
   tr.addEventListener("drop", async e => {
     e.preventDefault();
@@ -160,7 +299,6 @@ function wireDnD(tr){
     state.rules.splice(to,0,row);
     await saveAndRender("Re-ordered");
   });
-
   tr.addEventListener("click", (e)=>{
     if (!e.target.closest("input,select,textarea,button")) tr.focus();
   });
@@ -269,7 +407,12 @@ function ensurePreview(){
         <div class="ecb-wm"></div>
       </div>
     </div>`;
-  document.querySelector(".actions")?.insertAdjacentElement("afterend", wrap);
+
+  document.querySelector('.preview')
+  ?.replaceWith(wrap);
+
+
+
 
   const api = {
     root: wrap,
@@ -450,14 +593,9 @@ async function openTabPopover(anchorBtn, onPick) {
     const allTabs = await API.tabs.query({});
     const allWindows = await API.windows.getAll();
     const focusedWindow = allWindows.find(w => w.focused);
-
     tabs = allTabs
       .filter(t => isEligible(t.url || ""))
-      .map(t => ({
-        ...t,
-        _winId: t.windowId,
-        _focused: focusedWindow ? t.windowId === focusedWindow.id : false,
-      }));
+      .map(t => ({ ...t, _winId: t.windowId, _focused: focusedWindow ? t.windowId === focusedWindow.id : false }));
   } catch {
     tabs = [];
   }
@@ -543,47 +681,53 @@ async function openTabPopover(anchorBtn, onPick) {
   render(); ip.focus();
 }
 
-/* ---------- actions ---------- */
-els.add.addEventListener("click", async () => {
-  const blank = {
-    pattern: "*://example.com/*",
-    label: "ENV",
-    color: "#888888",
-    severity: "low",
-    enabled: true,
-    id: `r_${Math.random().toString(36).substr(2, 9)}`,
-  };
-  state.rules.push(blank);
-  await saveAndRender("Added");
+/* ---------- actions (single binding each) ---------- */
+els.add?.addEventListener("click", async () => {
+  await withButtonLoading(els.add, async () => {
+    const blank = {
+      pattern: "*://example.com/*",
+      label: "ENV",
+      color: "#888888",
+      severity: "low",
+      enabled: true,
+      id: `r_${Math.random().toString(36).substr(2, 9)}`
+    };
+    state.rules.push(blank);
+    await saveAndRender("Added");
+  }, "New rule added successfully!");
 });
 
-els.addFromTabs.addEventListener("click", (e) =>
+els.addFromTabs?.addEventListener("click", (e) =>
   openTabPopover(e.currentTarget, async (tab) => {
-    const base = {
-      pattern: patternFromUrlSmart(tab.url),
-      ...guessMeta(tab.url),
-      enabled: true,
-      id: `r_${Math.random().toString(36).substr(2, 9)}`,
-    };
-    state.rules.push({ ...base });
-    await saveAndRender("Added from tab");
-    const pv = ensurePreview();
-    pv.modeState = "url";
-    pv.url.value = tab.url;
-    runPreview(tab.url);
+    await withButtonLoading(els.addFromTabs, async () => {
+      const base = {
+        pattern: patternFromUrlSmart(tab.url),
+        ...guessMeta(tab.url),
+        enabled: true,
+        id: `r_${Math.random().toString(36).substr(2, 9)}`
+      };
+      state.rules.push({ ...base });
+      await saveAndRender("Added from tab");
+      const pv = ensurePreview();
+      pv.modeState = "url";
+      pv.url.value = tab.url;
+      runPreview(tab.url);
+    }, "Rule created from active tab!");
   })
 );
 
-els.defaults.addEventListener("click", async () => {
-  try {
-    const defs = await rpc({ type: "ecb:getDefaultRules" });
-    state.rules = Array.isArray(defs) ? defs : [];
-    await saveAndRender("Defaults restored");
-  } catch {
-    toast("Failed to load defaults");
-  }
+els.defaults?.addEventListener("click", async () => {
+  await withButtonLoading(els.defaults, async () => {
+    try {
+      const defs = await rpc({ type: "ecb:getDefaultRules" });
+      state.rules = Array.isArray(defs) ? defs : [];
+      await saveAndRender("Defaults restored");
+    } catch {
+      toast("Failed to load defaults");
+      throw new Error("Failed to load defaults");
+    }
+  }, "Default rules restored!");
 });
-
 
 /* External changes */
 API.storage.onChanged.addListener((changes, area)=>{
@@ -596,8 +740,6 @@ async function render(){
   const list = Array.isArray(state.rules) ? state.rules : [];
   list.forEach((r,i)=> els.tbody.appendChild(renderRow(r, i, list.length)));
 }
-
-
 
 /* ---------- heuristics ---------- */
 function patternFromUrlSmart(rawUrl) {
@@ -626,3 +768,4 @@ function guessMeta(rawUrl) {
   await render();
   ensurePreview();
 })();
+
