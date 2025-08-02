@@ -1,4 +1,6 @@
-# Env Color Banner
+# Enviro-Shade
+
+Ever accidentally push to production because you lost track of which environment you were in? We've all been there (or close to it). Enviro-Shade is your safety net, making it visually impossible to mistake your environments.
 
 A browser extension for developers that adds a prominent, customizable banner and watermark to web pages, making it easy to identify which environment (e.g., `LOCAL`, `QA`, `PROD`) you are currently on.
 

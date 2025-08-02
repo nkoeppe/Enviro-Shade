@@ -448,7 +448,7 @@ tbody tr {
 }
 
 tbody tr::before {
-  content: "";
+  /* content: ""; */
   position: absolute;
   left: 0;
   top: 0;
@@ -463,9 +463,9 @@ tbody tr::before {
   transition: width 0.3s ease;
 }
 
-tbody tr:hover::before {
-  width: 4px;
-}
+/* tbody tr:hover::before { */
+/*   width: 4px; */
+/* } */
 
 tbody tr:hover {
   background: linear-gradient(
