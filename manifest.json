@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Enviro-Shade",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Adds a customizable color banner and watermark to websites to clearly identify your environment (e.g., PROD, QA, LOCAL).",
-  "author": "Nico",
-  "homepage_url": "https://github.com/nicofancy/instance-background-zen-browser",
+  "author": "Nico Koeppe",
+  "homepage_url": "https://github.com/nkoeppe/Enviro-Shade",
   "permissions": ["tabs", "storage", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
+    "service_worker": "background.js",
     "scripts": ["background.js"]
   },
   "content_scripts": [
@@ -33,8 +34,8 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "strict_min_version": "109.0",
-      "id": "env-color-banner@fancyguysdev.de"
+      "id": "env-color-banner@fancyguysdev.de",
+      "strict_min_version": "109.0"
     }
   }
 }

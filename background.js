@@ -182,11 +182,24 @@ async function applyForFocused(reason) {
   API.webNavigation?.onCompleted?.addListener((d) => { if (d?.tabId != null) applyForTabId(d.tabId, "webNavigation.onCompleted"); });
 
 
-  API.runtime.onMessage.addListener((msg, sender) => {
-  if (msg?.type === "ecb:getRules")        return getRules();
-  if (msg?.type === "ecb:saveRules")       return saveRules(msg.payload);
-  if (msg?.type === "ecb:getDefaultRules") return Promise.resolve(getDefaultRules());
-});
+  API.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg?.type === "env-color-banner:ping") {
+      if (sender?.tab?.id != null) applyForTabId(sender.tab.id, "content-ping");
+      return;
+    }
+    if (msg?.type === "ecb:getRules") {
+      getRules().then(sendResponse);
+      return true;
+    }
+    if (msg?.type === "ecb:saveRules") {
+      saveRules(msg.payload).then(sendResponse);
+      return true;
+    }
+    if (msg?.type === "ecb:getDefaultRules") {
+      sendResponse(getDefaultRules());
+      return true;
+    }
+  });
 
 
   (API.action || API.browserAction)?.onClicked?.addListener(() => {
