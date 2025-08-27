@@ -1,0 +1,43 @@
+name: Create Release with Extension ZIP
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create extension ZIP
+      run: |
+        # Create a temporary directory for the extension files
+        mkdir -p extension-build
+        
+        # Copy all files except unwanted ones
+        cp -r . extension-build/
+        cd extension-build
+        
+        # Remove unwanted files and directories
+        rm -rf .git
+        rm -rf .github
+        rm -f .gitignore
+        rm -f *.zip
+        rm -f README.md
+        
+        # Create the ZIP file
+        cd ..
+        zip -r EnviroShade_${{ github.event.release.tag_name }}.zip extension-build/
+        
+    - name: Upload ZIP to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./EnviroShade_${{ github.event.release.tag_name }}.zip
+        asset_name: EnviroShade_${{ github.event.release.tag_name }}.zip
+        asset_content_type: application/zip
