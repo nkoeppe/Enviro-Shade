@@ -19,25 +19,37 @@ A browser extension for developers that adds a prominent, customizable banner an
 
 You can install the extension from the official web stores:
 
-- **Chrome:** [Link to Chrome Web Store](https://chrome.google.com/webstore/detail/your-extension-id) _(Coming Soon)_
-- **Firefox:** [Link to Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/your-addon-id/) _(Coming Soon)_
+- **Chrome:** ~~[Link to Chrome Web Store](https://github.com/nkoeppe/Enviro-Shade)~~ _(Chrome users can install manually using the instructions below)_
+- **Firefox:** [Link to Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/enviro-shade/)
 
 ### Manual Installation (for development)
 
-1.  Clone this repository: `git clone https://github.com/nkoeppe/Enviro-Shade.git`
-2.  **For Chrome:**
+1. Download the extension:
+   - Clone this repository: `git clone https://github.com/nkoeppe/Enviro-Shade.git`
+   - Or download the latest release as a ZIP file from the [releases page](https://github.com/nkoeppe/Enviro-Shade/releases) and **extract/unpack it** to a folder
+2. **For Chrome:**
     - Open Chrome and navigate to `chrome://extensions`.
     - Enable "Developer mode".
-    - Click "Load unpacked" and select the cloned repository folder.
-3.  **For Firefox:**
+    - Click "Load unpacked" and select the folder containing the extension files.
+    
+    **Chrome Auto-Load Workaround (Windows):**
+    To automatically load the extension every time Chrome starts:
+    - Navigate to `C:\ProgramData\Microsoft\Windows\Start Menu\Programs`
+    - Find the Google Chrome shortcut, right-click → Properties
+    - In the Shortcut tab, find the "Target" field
+    - Append `--load-extension="PATH_TO_EXTENSION"` to the end
+    - Example: `"C:\Program Files\Google\Chrome\Application\chrome.exe" --load-extension="C:\Users\YourName\Downloads\EnviroShade"`
+    - Replace the path with your actual extension folder path
+    
+3. **For Firefox:**
     - Open Firefox and navigate to `about:debugging`.
     - Click "This Firefox" and then "Load Temporary Add-on...".
-    - Select the `manifest.json` file from the cloned repository.
+    - Select the `manifest.json` file from the extracted/cloned folder.
 
 ## Configuration
 
-1.  Click the extension icon in your browser's toolbar to open the options page.
-2.  Here you can:
+1. Click the extension icon in your browser's toolbar to open the options page.
+2. Here you can:
     - **Add a new rule:** Click the "Add" button.
     - **Add from a tab:** Click "Add from open tabs" to create a rule based on a currently open page.
     - **Edit a rule:** Change the pattern, label, color, or severity directly in the table.
@@ -53,8 +65,6 @@ This project is built with plain JavaScript, CSS, and HTML. No build step is req
   - `background.js`: The service worker for handling all background tasks. It includes rule evaluation, badge updates, storage management, and default rule definitions.
   - `content.js`: The script injected into pages to display the overlay.
   - `options.html`/`options.js`/`options.css`: The options page UI and logic.
-
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
 ## Privacy
 
