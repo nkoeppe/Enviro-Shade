@@ -67,9 +67,39 @@ async function getRules() {
   }
 }
 
+async function getBlocklist() {
+  try {
+    const res = await API.storage.sync.get({ blocklist: null });
+    return normalizeBlocklist(res.blocklist || []);
+  } catch {
+    return [];
+  }
+}
+
 async function saveRules(rules) {
   const clean = normalizeRules(rules);
   await API.storage.sync.set({ rules: clean });
+  return clean;
+}
+
+function normalizeBlocklist(list) {
+  const out = [];
+  for (const item of Array.isArray(list) ? list : []) {
+    const rule = {
+      pattern: "",
+      enabled: true,
+      ...item,
+    };
+    if (rule.pattern) {
+      out.push({ ...rule, id: rule.id || `b_${Math.random().toString(36).substr(2, 9)}` });
+    }
+  }
+  return out;
+}
+
+async function saveBlocklist(blocklist) {
+  const clean = normalizeBlocklist(blocklist);
+  await API.storage.sync.set({ blocklist: clean });
   return clean;
 }
 
@@ -143,10 +173,25 @@ async function applyForTabId(tabId, reason) {
     if (!url) { setBadge(null, null); setOverlay(tabId, "", null); return; }
 
     const rules = await getRules();
+    const blocklist = await getBlocklist();
     let match = null;
+    
     for (const r of rules) {
       if (!r || r.enabled === false) continue;
-      if (globToRegex(r.pattern || "").test(url)) { match = r; break; }
+      if (globToRegex(r.pattern || "").test(url)) {
+        // Check if this URL is blocked
+        let isBlocked = false;
+        for (const b of blocklist) {
+          if (b.enabled && globToRegex(b.pattern || "").test(url)) {
+            isBlocked = true;
+            break;
+          }
+        }
+        if (!isBlocked) {
+          match = r;
+          break;
+        }
+      }
     }
 
     if (match) {
@@ -199,6 +244,14 @@ async function applyForFocused(reason) {
       sendResponse(getDefaultRules());
       return true;
     }
+    if (msg?.type === "ecb:getBlocklist") {
+      getBlocklist().then(sendResponse);
+      return true;
+    }
+    if (msg?.type === "ecb:saveBlocklist") {
+      saveBlocklist(msg.payload).then(sendResponse);
+      return true;
+    }
   });
 
 
@@ -207,7 +260,7 @@ async function applyForFocused(reason) {
   });
 
   API.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && changes.rules) applyForFocused("rules changed");
+    if (area === "sync" && (changes.rules || changes.blocklist)) applyForFocused("rules changed");
   });
 
   applyForFocused("init");

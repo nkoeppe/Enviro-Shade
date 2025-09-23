@@ -10,13 +10,17 @@ const API = typeof browser !== "undefined" ? browser : chrome;
 
 const els = {
   tbody: document.querySelector("#rules tbody"),
+  blocklistTbody: document.querySelector("#blocklist tbody"),
   add: document.getElementById("add"),
   addFromTabs: document.getElementById("addFromTabs"),
   defaults: document.getElementById("defaults"),
-  status: document.getElementById("status")
+  status: document.getElementById("status"),
+  addBlocklist: document.getElementById("addBlocklist"),
+  clearBlocklist: document.getElementById("clearBlocklist"),
+  blocklistStatus: document.getElementById("blocklist-status")
 };
 
-const state = { rules: [], saving: false, preview: null };
+const state = { rules: [], blocklist: [], saving: false, preview: null, currentTab: 'rules' };
 
 /** Status toast. */
 function toast(msg, ms = 2000) {
@@ -237,6 +241,13 @@ async function load() {
   } catch {
     state.rules = [];
   }
+  
+  try {
+    const blocklistRes = await rpc({ type: "ecb:getBlocklist" });
+    state.blocklist = Array.isArray(blocklistRes) ? blocklistRes : [];
+  } catch {
+    state.blocklist = [];
+  }
 }
 
 async function saveAndRender(msg = "Saved") {
@@ -249,6 +260,17 @@ async function saveAndRender(msg = "Saved") {
   }
   await render();
   if (state.preview) runPreview(state.preview.url.value.trim());
+}
+
+async function saveBlocklistAndRender(msg = "Saved") {
+  state.saving = true;
+  try {
+    await rpc({ type: "ecb:saveBlocklist", payload: state.blocklist });
+    toast(msg);
+  } finally {
+    state.saving = false;
+  }
+  await renderBlocklist();
 }
 
 /* ---------- DnD (background-only) ---------- */
@@ -467,14 +489,47 @@ function runPreview(url) {
   for (let i=0;i<state.rules.length;i++){
     const r=state.rules[i];
     if (!r.enabled) continue;
-    if (sameMatcher(r.pattern||"").test(url)) { idx=i; match=r; break; }
+    if (sameMatcher(r.pattern||"").test(url)) {
+      // Check if this URL is blocked
+      let isBlocked = false;
+      for (const b of state.blocklist) {
+        if (b.enabled && sameMatcher(b.pattern || "").test(url)) {
+          isBlocked = true;
+          break;
+        }
+      }
+      if (!isBlocked) {
+        idx=i; match=r; break;
+      }
+    }
   }
 
   [...els.tbody.children].forEach(tr=>tr.classList.remove("matched"));
   if (!match) {
-    pv.result.textContent = "No rule matches.";
+    // Check if it was blocked
+    let wasBlocked = false;
+    for (let i=0;i<state.rules.length;i++){
+      const r=state.rules[i];
+      if (!r.enabled) continue;
+      if (sameMatcher(r.pattern||"").test(url)) {
+        for (const b of state.blocklist) {
+          if (b.enabled && sameMatcher(b.pattern || "").test(url)) {
+            wasBlocked = true;
+            break;
+          }
+        }
+        if (wasBlocked) break;
+      }
+    }
+    
+    if (wasBlocked) {
+      pv.result.textContent = "Rule matched but blocked by blocklist.";
+      setChips({ modeText:null, matchText:"Blocked" });
+    } else {
+      pv.result.textContent = "No rule matches.";
+      setChips({ modeText:null, matchText:"No match" });
+    }
     pv.sim.hidden = true;
-    setChips({ modeText:null, matchText:"No match" });
     return;
   }
 
@@ -656,6 +711,29 @@ async function openTabPopover(anchorBtn, onPick) {
   render(); ip.focus();
 }
 
+/* ---------- tab switching ---------- */
+function switchTab(tabName) {
+  state.currentTab = tabName;
+  
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+  
+  // Update tab content
+  document.getElementById('rules-tab').style.display = tabName === 'rules' ? 'block' : 'none';
+  document.getElementById('blocklist-tab').style.display = tabName === 'blocklist' ? 'block' : 'none';
+  
+  // Update table containers
+  document.getElementById('rules-table-container').style.display = tabName === 'rules' ? 'block' : 'none';
+  document.getElementById('blocklist-table-container').style.display = tabName === 'blocklist' ? 'block' : 'none';
+}
+
+// Tab button event listeners
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
 /* ---------- actions (single binding each) ---------- */
 els.add?.addEventListener("click", async () => {
   await withButtonLoading(els.add, async () => {
@@ -704,9 +782,30 @@ els.defaults?.addEventListener("click", async () => {
   }, "Default rules restored!");
 });
 
+els.addBlocklist?.addEventListener("click", async () => {
+  await withButtonLoading(els.addBlocklist, async () => {
+    const blank = {
+      pattern: "*://192.168.3.27/*",
+      enabled: true,
+      id: `b_${Math.random().toString(36).substr(2, 9)}`
+    };
+    state.blocklist.push(blank);
+    await saveBlocklistAndRender("Added");
+  }, "Blocklist rule added!");
+});
+
+els.clearBlocklist?.addEventListener("click", async () => {
+  if (!confirm("Are you sure you want to clear all blocklist rules?")) return;
+  await withButtonLoading(els.clearBlocklist, async () => {
+    state.blocklist = [];
+    await saveBlocklistAndRender("Cleared");
+  }, "Blocklist cleared!");
+});
+
 /* External changes */
 API.storage.onChanged.addListener((changes, area)=>{
   if (area==="sync" && changes.rules && !state.saving) render();
+  if (area==="sync" && changes.blocklist && !state.saving) renderBlocklist();
 });
 
 /* ---------- render ---------- */
@@ -714,6 +813,56 @@ async function render(){
   els.tbody.textContent = "";
   const list = Array.isArray(state.rules) ? state.rules : [];
   list.forEach((r,i)=> els.tbody.appendChild(renderRow(r, i, list.length)));
+}
+
+async function renderBlocklist(){
+  els.blocklistTbody.textContent = "";
+  const list = Array.isArray(state.blocklist) ? state.blocklist : [];
+  list.forEach((b,i)=> els.blocklistTbody.appendChild(renderBlocklistRow(b, i, list.length)));
+}
+
+function renderBlocklistRow(rule, idx, total){
+  const tr = document.createElement("tr");
+  tr.dataset.id = rule.id;
+  tr.dataset.index = idx;
+
+  const tdEn = document.createElement("td");
+  const en = document.createElement("input");
+  en.type="checkbox"; en.checked=!!rule.enabled;
+  en.addEventListener("change", async ()=>{ rule.enabled=en.checked; await saveBlocklistAndRender(); });
+  tdEn.append(en);
+
+  const tdPat = document.createElement("td");
+  const ipPat = document.createElement("input");
+  ipPat.type="text"; ipPat.value=rule.pattern||"";
+  ipPat.placeholder="*://192.168.3.27/*";
+  ipPat.addEventListener("change", async ()=>{ rule.pattern=ipPat.value; await saveBlocklistAndRender(); });
+  ipPat.addEventListener("keyup", e=>{ if(e.key==="Enter") ipPat.blur(); });
+  tdPat.append(ipPat);
+
+  const tdOrd=document.createElement("td");
+  const grp=document.createElement("div"); grp.className="order-group";
+  const up=document.createElement("button"); up.className="icon up"; up.disabled=idx===0;
+  const dn=document.createElement("button"); dn.className="icon down"; dn.disabled=idx===total-1;
+  up.addEventListener("click", async ()=>{
+    if(idx===0) return;
+    const [row]=state.blocklist.splice(idx,1); state.blocklist.splice(idx-1,0,row);
+    await saveBlocklistAndRender("Re-ordered");
+  });
+  dn.addEventListener("click", async ()=>{
+    if(idx>=total-1) return;
+    const [row]=state.blocklist.splice(idx,1); state.blocklist.splice(idx+1,0,row);
+    await saveBlocklistAndRender("Re-ordered");
+  });
+  grp.append(up,dn); tdOrd.append(grp);
+
+  const tdDel=document.createElement("td");
+  const del=document.createElement("button"); del.textContent="✕";
+  del.addEventListener("click", async ()=>{ state.blocklist.splice(idx,1); await saveBlocklistAndRender("Deleted"); });
+  tdDel.append(del);
+
+  tr.append(tdEn, tdPat, tdOrd, tdDel);
+  return tr;
 }
 
 /* ---------- heuristics ---------- */
@@ -741,6 +890,7 @@ function guessMeta(rawUrl) {
 (async function init(){
   await load();
   await render();
+  await renderBlocklist();
   ensurePreview();
 })();
 
