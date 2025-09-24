@@ -135,20 +135,10 @@ jobs:
         # Create a temporary directory for the extension files
         mkdir -p extension-build
         
-        # Copy all files except unwanted ones
-        cp -r . extension-build/
-        cd extension-build
-        
-        # Remove unwanted files and directories
-        rm -rf .git
-        rm -rf .github
-        rm -f .gitignore
-        rm -f *.zip
-        rm -f README.md
-        rm -f release_notes.md
+        # Copy all files except unwanted directories and files
+        find . -maxdepth 1 -not -name '.' -not -name 'extension-build' -not -name '.git' -not -name '.github' -not -name '*.zip' -not -name 'README.md' -not -name 'release_notes.md' -not -name '.gitignore' -exec cp -r {} extension-build/ \;
         
         # Create the ZIP file
-        cd ..
         zip -r EnviroShade_${{ steps.version.outputs.version }}.zip extension-build/
         ls -la EnviroShade_${{ steps.version.outputs.version }}.zip
         
