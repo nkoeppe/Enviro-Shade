@@ -1,0 +1,163 @@
+name: Auto Release Extension
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Get current manifest version
+      id: manifest
+      run: |
+        VERSION=$(jq -r '.version' manifest.json)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current manifest version: $VERSION"
+        
+    - name: Get latest release version
+      id: latest_release
+      run: |
+        LATEST=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "v0.0.0")
+        LATEST_VERSION=${LATEST#v}
+        echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
+        echo "Latest release version: $LATEST_VERSION"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Compare versions and decide next version
+      id: version
+      run: |
+        MANIFEST_VERSION="${{ steps.manifest.outputs.version }}"
+        LATEST_VERSION="${{ steps.latest_release.outputs.latest }}"
+        
+        echo "Comparing versions: manifest=$MANIFEST_VERSION, latest=$LATEST_VERSION"
+        
+        # Function to compare semantic versions
+        version_gt() {
+          test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+        }
+        
+        if version_gt "$MANIFEST_VERSION" "$LATEST_VERSION"; then
+          # Manifest version is newer, use it
+          NEXT_VERSION="$MANIFEST_VERSION"
+          echo "Using manifest version: $NEXT_VERSION"
+        else
+          # Manifest version is same or older, increment patch version
+          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          NEXT_VERSION="$major.$minor.$((patch + 1))"
+          echo "Auto-incrementing to: $NEXT_VERSION"
+          
+          # Update manifest.json with new version
+          jq --arg version "$NEXT_VERSION" '.version = $version' manifest.json > tmp.json && mv tmp.json manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: bump version to $NEXT_VERSION" || echo "No changes to commit"
+          git push || echo "No changes to push"
+        fi
+        
+        echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+        echo "tag=v$NEXT_VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Check if release already exists
+      id: release_exists
+      run: |
+        if gh release view "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Release v${{ steps.version.outputs.version }} already exists, skipping..."
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Release v${{ steps.version.outputs.version }} does not exist, proceeding..."
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Generate release notes
+      id: release_notes
+      if: steps.release_exists.outputs.exists == 'false'
+      run: |
+        LAST_TAG="${{ steps.latest_release.outputs.latest }}"
+        if [ "$LAST_TAG" = "0.0.0" ]; then
+          LAST_TAG=""
+        else
+          LAST_TAG="v$LAST_TAG"
+        fi
+        
+        # Generate changelog from commits
+        if [ -n "$LAST_TAG" ]; then
+          CHANGELOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG="- Minor improvements and bug fixes"
+        fi
+        
+        cat > release_notes.md << EOF
+        ## What's Changed
+        
+        $CHANGELOG
+        
+        ## Installation
+        
+        ### Chrome/Edge
+        1. Download \`EnviroShade_${{ steps.version.outputs.version }}.zip\`
+        2. Extract the ZIP file
+        3. Open Chrome/Edge and go to \`chrome://extensions/\` or \`edge://extensions/\`
+        4. Enable "Developer mode"
+        5. Click "Load unpacked" and select the extracted folder
+        
+        ### Firefox
+        1. Download \`EnviroShade_${{ steps.version.outputs.version }}.zip\`
+        2. Open Firefox and go to \`about:debugging\`
+        3. Click "This Firefox"
+        4. Click "Load Temporary Add-on"
+        5. Select the downloaded ZIP file
+        
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...v${{ steps.version.outputs.version }}
+        EOF
+        
+    - name: Create extension ZIP
+      if: steps.release_exists.outputs.exists == 'false'
+      run: |
+        # Create a temporary directory for the extension files
+        mkdir -p extension-build
+        
+        # Copy all files except unwanted ones
+        cp -r . extension-build/
+        cd extension-build
+        
+        # Remove unwanted files and directories
+        rm -rf .git
+        rm -rf .github
+        rm -f .gitignore
+        rm -f *.zip
+        rm -f README.md
+        rm -f release_notes.md
+        
+        # Create the ZIP file
+        cd ..
+        zip -r EnviroShade_${{ steps.version.outputs.version }}.zip extension-build/
+        ls -la EnviroShade_${{ steps.version.outputs.version }}.zip
+        
+    - name: Create GitHub Release
+      if: steps.release_exists.outputs.exists == 'false'
+      run: |
+        gh release create "v${{ steps.version.outputs.version }}" \
+          --title "Enviro-Shade v${{ steps.version.outputs.version }}" \
+          --notes-file release_notes.md \
+          EnviroShade_${{ steps.version.outputs.version }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
