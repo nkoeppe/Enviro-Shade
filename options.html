@@ -15,29 +15,49 @@
           glob. Example: <code>*://*.pro*.cfapps.*/*</code>
         </p>
 
-        <div class="actions">
-          <button id="add">Add rule</button>
-          <button id="addFromTabs">Add from open tabs</button>
-          <button id="defaults">Restore defaults</button>
-          <span id="status" role="status"></span>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="rules">Rules</button>
+          <button class="tab-btn" data-tab="blocklist">Blocklist</button>
+        </div>
+
+        <div class="tab-content" id="rules-tab">
+          <div class="actions">
+            <button id="add">Add rule</button>
+            <button id="addFromTabs">Add from open tabs</button>
+            <button id="defaults">Restore defaults</button>
+            <span id="status" role="status"></span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="blocklist-tab" style="display: none;">
+          <div class="blocklist-info">
+            <p>Blocklist rules prevent overlays from showing, even when a regular rule matches.</p>
+            <p>Example: You have <code>*://192.168.*/*</code> → LOCAL, but want to exclude <code>*://192.168.3.27/*</code></p>
+          </div>
+          <div class="actions">
+            <button id="addBlocklist">Add blocklist rule</button>
+            <button id="clearBlocklist">Clear all</button>
+            <span id="blocklist-status" role="status"></span>
+          </div>
         </div>
 
         <div class="preview"></div>
 
         <div class="table-container">
-          <table id="rules">
-            <thead>
-              <tr>
-                <th>Enabled</th>
-                <th>Pattern (glob)</th>
-                <th>Label</th>
-                <th>Color</th>
-                <th>Severity</th>
-                <th>Order</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div id="rules-table-container">
+            <table id="rules">
+              <thead>
+                <tr>
+                  <th>Enabled</th>
+                  <th>Pattern (glob)</th>
+                  <th>Label</th>
+                  <th>Color</th>
+                  <th>Severity</th>
+                  <th>Order</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
               <!-- Demo rows for styling -->
               <tr>
                 <td><input type="checkbox" checked /></td>
@@ -101,8 +121,24 @@
                 </td>
                 <td><button>✕</button></td>
               </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="blocklist-table-container" style="display: none;">
+            <table id="blocklist">
+              <thead>
+                <tr>
+                  <th>Enabled</th>
+                  <th>Pattern (glob)</th>
+                  <th>Order</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <details class="help">
