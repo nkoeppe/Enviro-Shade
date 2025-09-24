@@ -151,3 +151,22 @@ jobs:
           EnviroShade_${{ steps.version.outputs.version }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Publish to Firefox Add-ons Store
+      if: steps.release_exists.outputs.exists == 'false' && vars.PUBLISH_FIREFOX == 'true'
+      uses: wdzeng/firefox-addon@v1
+      with:
+        addon-guid: env-color-banner@fancyguysdev.de
+        xpi-path: EnviroShade_${{ steps.version.outputs.version }}.zip
+        jwt-issuer: ${{ secrets.FIREFOX_JWT_ISSUER }}
+        jwt-secret: ${{ secrets.FIREFOX_JWT_SECRET }}
+        approval-notes: |
+          Automated release v${{ steps.version.outputs.version }}
+          
+          This extension adds customizable color banners and watermarks to websites to help identify different environments (PROD, QA, LOCAL, etc.).
+          
+          Changes in this version:
+          - See GitHub release notes for detailed changelog
+          
+          Source code: https://github.com/${{ github.repository }}
+          Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}
