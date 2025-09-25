@@ -15,11 +15,6 @@ jobs:
   generate-screenshots:
     runs-on: ubuntu-latest
     
-    services:
-      docker:
-        image: docker:24-dind
-        options: --privileged
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -36,6 +31,10 @@ jobs:
       
     - name: Install Playwright browsers
       run: npx playwright install chromium
+      
+    - name: Pull Docker images
+      run: |
+        docker pull nginx:alpine || echo "Pull failed, continuing..."
       
     - name: Start demo applications
       run: |
