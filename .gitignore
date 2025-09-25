@@ -14,11 +14,6 @@ package-lock.json
 chrome-profile/
 firefox-profile/
 
-# Screenshots and temporary files (but keep docs/assets/screenshots)
-/screenshots/
-/docs/assets/screenshots/*.png
-/docs/assets/screenshots/*.jpg
-/docs/assets/screenshots/*.jpeg
 .DS_Store
 Thumbs.db
 
@@ -54,8 +49,3 @@ temp/
 .env.test.local
 .env.production.local
 
-# Test and automation temp files
-force-rules.js
-manual-options-screenshot.js
-test-about-pages.js
-screenshot-setup.md

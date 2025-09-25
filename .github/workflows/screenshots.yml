@@ -36,11 +36,34 @@ jobs:
       run: |
         cd scripts/demo
         node start-node.js &
+        DEMO_PID=$!
+        echo "Demo server started with PID: $DEMO_PID"
+        echo "DEMO_PID=$DEMO_PID" >> $GITHUB_ENV
         sleep 10
-        echo "Demo apps started"
+        
+        # Verify apps are responding
+        if ! curl -f http://localhost:3000 > /dev/null 2>&1; then
+          echo "❌ Demo app 1 not responding"
+          exit 1
+        fi
+        if ! curl -f http://localhost:3001 > /dev/null 2>&1; then
+          echo "❌ Demo app 2 not responding"
+          exit 1
+        fi
+        echo "✅ Both demo apps are responding"
         
     - name: Generate Chrome screenshots
-      run: npm run screenshots:chrome
+      run: |
+        set -e  # Exit on any error
+        npm run screenshots:chrome
+        
+    - name: Stop demo applications
+      if: always()
+      run: |
+        if [ -n "$DEMO_PID" ]; then
+          kill $DEMO_PID 2>/dev/null || true
+        fi
+        pkill -f "node start-node.js" 2>/dev/null || true
       
         
     - name: Check if screenshots changed
