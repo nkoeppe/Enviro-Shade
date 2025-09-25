@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 
 async function takeScreenshotsChrome() {
-  // 📸 Capture extension screenshots across demo environments
   // Create screenshots directory
   const screenshotsDir = path.join(__dirname, '../docs/assets/screenshots');
   if (!fs.existsSync(screenshotsDir)) {
@@ -17,13 +16,15 @@ async function takeScreenshotsChrome() {
   
   const context = await chromium.launchPersistentContext(path.join(__dirname, '../chrome-profile'), {
     channel: 'chromium', // Use Chromium instead of Chrome
-    headless: false,
+    headless: true, // Enable headless mode for CI
     viewport: { width: 1280, height: 800 }, // Chrome Web Store requirement: 1280x800
     args: [
       `--disable-extensions-except=${pathToExtension}`,
       `--load-extension=${pathToExtension}`,
       '--disable-dev-shm-usage',
       '--no-sandbox',
+      '--disable-gpu',
+      '--disable-web-security',
       '--window-size=1280,800', // Force exact window size
       '--start-maximized=false', // Don't maximize
     ]
