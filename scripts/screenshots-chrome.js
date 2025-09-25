@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 async function takeScreenshotsChrome() {
+  // Automated screenshot capture for Chrome extension demo
   // Create screenshots directory
   const screenshotsDir = path.join(__dirname, '../docs/assets/screenshots');
   if (!fs.existsSync(screenshotsDir)) {

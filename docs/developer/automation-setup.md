@@ -59,7 +59,7 @@ In your repository (**Settings → Secrets and variables → Actions**):
 CHROME_CLIENT_ID        = your-google-oauth-client-id
 CHROME_CLIENT_SECRET    = your-google-oauth-client-secret  
 CHROME_REFRESH_TOKEN    = your-google-oauth-refresh-token
-CHROME_EXTENSION_ID     = your-32-character-extension-id
+CHROME_EXTENSION_ID     = epdlbkjhnbhhaecjebhfnimenndpgalc
 ```
 
 **Repository Variables:**
