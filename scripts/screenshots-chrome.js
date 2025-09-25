@@ -85,7 +85,7 @@ async function takeScreenshotsChrome() {
       {
         id: 'stage-chrome',
         pattern: 'http://localhost:3001/*',
-        label: 'STAGING',
+        label: 'QA',
         color: '#d97706',
         severity: 'medium',
         enabled: true
@@ -198,11 +198,11 @@ async function takeScreenshotsChrome() {
     console.log('📁 Chrome Web Store ready files (1280x800):');
     console.log('  - webstore-options-1280x800.png (Extension options page)');
     console.log('  - webstore-production-1280x800.png (PRO environment demo)'); 
-    console.log('  - webstore-staging-1280x800.png (STAGING environment demo)');
+    console.log('  - webstore-staging-1280x800.png (QA environment demo)');
     console.log('');
     console.log('🏪 These screenshots are formatted exactly for Chrome Web Store submission!');
     
-    if (prodBadge.includes('PRO') || stagingBadge.includes('STAGING')) {
+    if (prodBadge.includes('PRO') || stagingBadge.includes('QA')) {
       console.log('🎉 SUCCESS! Extension rules are working correctly!');
     } else {
       console.log('⚠️ Rules may not be working - badges show:', prodBadge, stagingBadge);
