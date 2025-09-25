@@ -20,7 +20,7 @@ A powerful browser extension that adds customizable color banners and watermarks
 
 ### QA/Staging Environment
 ![QA Testing Environment](docs/assets/screenshots/webstore-staging-1280x800.png)
-*Medium-severity orange "STAGING" badge for testing environments*
+*Medium-severity orange "QA" badge for testing environments*
 
 ### Extension Options
 ![Extension Options](docs/assets/screenshots/webstore-options-1280x800.png)
