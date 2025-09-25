@@ -1,6 +1,6 @@
 # Enviro-Shade
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?style=flat-square&logo=google-chrome)](https://chrome.google.com/webstore/detail/enviro-shade/EXTENSION_ID)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?style=flat-square&logo=google-chrome)](https://chrome.google.com/webstore/detail/enviro-shade/epdlbkjhnbhhaecjebhfnimenndpgalc)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange?style=flat-square&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/enviro-shade/)
 [![Version](https://img.shields.io/github/v/release/nkoeppe/Enviro-Shade?style=flat-square)](https://github.com/nkoeppe/Enviro-Shade/releases)
 [![License](https://img.shields.io/github/license/nkoeppe/Enviro-Shade?style=flat-square)](LICENSE)
@@ -42,7 +42,7 @@ A powerful browser extension that adds customizable color banners and watermarks
 
 ### Official Stores (Recommended)
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Install-blue?style=for-the-badge&logo=google-chrome)](https://chrome.google.com/webstore/detail/enviro-shade/EXTENSION_ID)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Install-blue?style=for-the-badge&logo=google-chrome)](https://chrome.google.com/webstore/detail/enviro-shade/epdlbkjhnbhhaecjebhfnimenndpgalc)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox-Install-orange?style=for-the-badge&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/enviro-shade/)
 
 - **Chrome Web Store**: One-click installation with automatic updates
