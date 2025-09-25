@@ -21,7 +21,7 @@ jobs:
     - name: Get current manifest version
       id: manifest
       run: |
-        VERSION=$(jq -r '.version' manifest.json)
+        VERSION=$(jq -r '.version' src/manifest.json)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Current manifest version: $VERSION"
         
@@ -59,10 +59,10 @@ jobs:
           echo "Auto-incrementing to: $NEXT_VERSION"
           
           # Update manifest.json with new version
-          jq --arg version "$NEXT_VERSION" '.version = $version' manifest.json > tmp.json && mv tmp.json manifest.json
+          jq --arg version "$NEXT_VERSION" '.version = $version' src/manifest.json > tmp.json && mv tmp.json src/manifest.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
+          git add src/manifest.json
           git commit -m "chore: bump version to $NEXT_VERSION" || echo "No changes to commit"
           git push || echo "No changes to push"
         fi
@@ -96,14 +96,60 @@ jobs:
         
         # Generate changelog from commits
         if [ -n "$LAST_TAG" ]; then
-          CHANGELOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          # Get commits since last tag, excluding merge commits
+          COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges)
         else
-          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          # Get all commits if no previous tag
+          COMMITS=$(git log --pretty=format:"%s (%h)" --no-merges --max-count=10)
         fi
         
-        if [ -z "$CHANGELOG" ]; then
-          CHANGELOG="- Minor improvements and bug fixes"
+        # Process commits into categorized changelog
+        CHANGELOG=""
+        FEATURES=""
+        FIXES=""
+        CHORES=""
+        
+        while IFS= read -r commit; do
+          if [ -n "$commit" ]; then
+            case "$commit" in
+              feat*|feature*|add*)
+                FEATURES="${FEATURES}- ${commit}\n"
+                ;;
+              fix*|bug*|patch*)
+                FIXES="${FIXES}- ${commit}\n"
+                ;;
+              chore*|bump*|update*|refactor*|style*)
+                CHORES="${CHORES}- ${commit}\n"
+                ;;
+              *)
+                # Default to improvements
+                CHANGELOG="${CHANGELOG}- ${commit}\n"
+                ;;
+            esac
+          fi
+        done <<< "$COMMITS"
+        
+        # Build final changelog
+        FINAL_CHANGELOG=""
+        if [ -n "$FEATURES" ]; then
+          FINAL_CHANGELOG="${FINAL_CHANGELOG}### ✨ New Features\n${FEATURES}\n"
         fi
+        if [ -n "$FIXES" ]; then
+          FINAL_CHANGELOG="${FINAL_CHANGELOG}### 🐛 Bug Fixes\n${FIXES}\n"
+        fi
+        if [ -n "$CHANGELOG" ]; then
+          FINAL_CHANGELOG="${FINAL_CHANGELOG}### 🔧 Improvements\n${CHANGELOG}\n"
+        fi
+        if [ -n "$CHORES" ]; then
+          FINAL_CHANGELOG="${FINAL_CHANGELOG}### 📦 Maintenance\n${CHORES}\n"
+        fi
+        
+        # Fallback if no commits found
+        if [ -z "$FINAL_CHANGELOG" ]; then
+          FINAL_CHANGELOG="### 🔧 Improvements\n- Minor improvements and bug fixes\n"
+        fi
+        
+        CHANGELOG="$FINAL_CHANGELOG"
         
         cat > release_notes.md << EOF
         ## What's Changed
@@ -132,9 +178,10 @@ jobs:
     - name: Create extension ZIP
       if: steps.release_exists.outputs.exists == 'false'
       run: |
-        # Create the ZIP file directly from root, excluding unwanted files
-        zip -r EnviroShade_${{ steps.version.outputs.version }}.zip . \
-          -x ".git/*" ".github/*" "*.zip" "README.md" "release_notes.md" ".gitignore" "docs/*"
+        # Create the ZIP file from src directory only
+        cd src
+        zip -r ../EnviroShade_${{ steps.version.outputs.version }}.zip .
+        cd ..
         ls -la EnviroShade_${{ steps.version.outputs.version }}.zip
         
     - name: Create GitHub Release
@@ -165,3 +212,14 @@ jobs:
           
           Source code: https://github.com/${{ github.repository }}
           Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}
+          
+    - name: Publish to Chrome Web Store
+      if: steps.release_exists.outputs.exists == 'false' && vars.PUBLISH_CHROME == 'true'
+      uses: mobilefirstllc/cws-publish@latest
+      with:
+        action: publish
+        client_id: ${{ secrets.CHROME_CLIENT_ID }}
+        client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+        refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
+        zip_file: EnviroShade_${{ steps.version.outputs.version }}.zip

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Enviro-Shade – Options</title>
+    <link rel="icon" href="icons/icon-32.png" type="image/png" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <div class="glass-container">
+        <h1>Enviro-Shade — Rules</h1>
+        <p class="hint">
+          Rules are matched top-to-bottom against the full URL using a simple
+          glob. Example: <code>*://*.pro*.cfapps.*/*</code>
+        </p>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="rules">Rules</button>
+          <button class="tab-btn" data-tab="blocklist">Blocklist</button>
+        </div>
+
+        <div class="tab-content" id="rules-tab">
+          <div class="actions">
+            <button id="add">Add rule</button>
+            <button id="addFromTabs">Add from open tabs</button>
+            <button id="defaults">Restore defaults</button>
+            <span id="status" role="status"></span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="blocklist-tab" style="display: none;">
+          <div class="blocklist-info">
+            <p>Blocklist rules prevent overlays from showing, even when a regular rule matches.</p>
+            <p>Example: You have <code>*://192.168.*/*</code> → LOCAL, but want to exclude <code>*://192.168.3.27/*</code></p>
+          </div>
+          <div class="actions">
+            <button id="addBlocklist">Add blocklist rule</button>
+            <button id="clearBlocklist">Clear all</button>
+            <span id="blocklist-status" role="status"></span>
+          </div>
+        </div>
+
+        <div class="preview"></div>
+
+        <div class="table-container">
+          <div id="rules-table-container">
+            <table id="rules">
+              <thead>
+                <tr>
+                  <th>Enabled</th>
+                  <th>Pattern (glob)</th>
+                  <th>Label</th>
+                  <th>Color</th>
+                  <th>Severity</th>
+                  <th>Order</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+              <!-- Demo rows for styling -->
+              <tr>
+                <td><input type="checkbox" checked /></td>
+                <td>
+                  <input type="text" value="*://*-pro[0-9]*.cfapps.*/*" />
+                </td>
+                <td><input type="text" value="PROD" /></td>
+                <td><input type="color" value="#dc2626" /></td>
+                <td>
+                  <select>
+                    <option>low</option>
+                    <option>medium</option>
+                    <option selected>high</option>
+                  </select>
+                </td>
+                <td>
+                  <div class="order-group">
+                    <button class="icon up" disabled></button>
+                    <button class="icon down"></button>
+                  </div>
+                </td>
+                <td><button>✕</button></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" checked /></td>
+                <td><input type="text" value="*://*-qa[0-9]*.cfapps.*/*" /></td>
+                <td><input type="text" value="QA" /></td>
+                <td><input type="color" value="#facc15" /></td>
+                <td>
+                  <select>
+                    <option>low</option>
+                    <option selected>medium</option>
+                    <option>high</option>
+                  </select>
+                </td>
+                <td>
+                  <div class="order-group">
+                    <button class="icon up"></button>
+                    <button class="icon down"></button>
+                  </div>
+                </td>
+                <td><button>✕</button></td>
+              </tr>
+              <tr class="matched">
+                <td><input type="checkbox" checked /></td>
+                <td><input type="text" value="*://localhost*/*" /></td>
+                <td><input type="text" value="LOCAL" /></td>
+                <td><input type="color" value="#16a34a" /></td>
+                <td>
+                  <select>
+                    <option selected>low</option>
+                    <option>medium</option>
+                    <option>high</option>
+                  </select>
+                </td>
+                <td>
+                  <div class="order-group">
+                    <button class="icon up"></button>
+                    <button class="icon down" disabled></button>
+                  </div>
+                </td>
+                <td><button>✕</button></td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="blocklist-table-container" style="display: none;">
+            <table id="blocklist">
+              <thead>
+                <tr>
+                  <th>Enabled</th>
+                  <th>Pattern (glob)</th>
+                  <th>Order</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="help">
+          <summary>Pattern help & templates</summary>
+          <div class="help-grid">
+            <section>
+              <h3>Glob syntax</h3>
+              <ul>
+                <li><code>*</code> any chars, <code>?</code> single char.</li>
+                <li>
+                  <code>[abc]</code> character class. Class may be quantified:
+                  <code>[abc]*</code>, <code>[abc]+</code>, <code>[abc]?</code>.
+                </li>
+                <li>Match is case-insensitive and runs on the full URL.</li>
+                <li>Only <code>http(s)</code> pages can show the overlay.</li>
+                <li>Order matters: first enabled rule wins.</li>
+              </ul>
+            </section>
+            <section>
+              <h3>Common templates</h3>
+              <div class="tpls">
+                <button
+                  class="tpl"
+                  data-pattern="*://*.pro*.cfapps.*/*"
+                  data-label="PROD"
+                  data-color="#dc2626"
+                  data-severity="high"
+                >
+                  PROD (cfapps)
+                </button>
+                <button
+                  class="tpl"
+                  data-pattern="*://*.qa*.cfapps.*/*"
+                  data-label="QA"
+                  data-color="#facc15"
+                  data-severity="medium"
+                >
+                  QA (cfapps)
+                </button>
+                <button
+                  class="tpl"
+                  data-pattern="*://localhost*/*"
+                  data-label="LOCAL"
+                  data-color="#16a34a"
+                  data-severity="low"
+                >
+                  localhost
+                </button>
+                <button
+                  class="tpl"
+                  data-pattern="*://127.0.0.1*/*"
+                  data-label="LOCAL"
+                  data-color="#16a34a"
+                  data-severity="low"
+                >
+                  127.0.0.1
+                </button>
+                <button
+                  class="tpl"
+                  data-pattern="*://*.staging.*/*"
+                  data-label="STAGING"
+                  data-color="#0ea5e9"
+                  data-severity="medium"
+                >
+                  *.staging.*
+                </button>
+              </div>
+            </section>
+            <section>
+              <h3>Tips</h3>
+              <ul>
+                <li>
+                  Prefer host-specific patterns like
+                  <code>*://my.app.com/*</code>.
+                </li>
+                <li>Keep high-risk rules (e.g., PROD) at the top.</li>
+                <li>Use the Preview & checker below to validate quickly.</li>
+              </ul>
+            </section>
+          </div>
+        </details>
+      </div>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Enviro-Shade",
+  "version": "1.4.2",
+  "description": "Adds a customizable color banner and watermark to websites to clearly identify your environment (e.g., PROD, QA, LOCAL).",
+  "author": "Nico Koeppe",
+  "homepage_url": "https://github.com/nkoeppe/Enviro-Shade",
+  "permissions": [
+    "tabs",
+    "storage",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "Enviro-Shade"
+  },
+  "icons": {
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "env-color-banner@fancyguysdev.de",
+      "strict_min_version": "109.0"
+    }
+  }
+}

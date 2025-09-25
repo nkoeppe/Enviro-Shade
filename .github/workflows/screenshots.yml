@@ -1,0 +1,81 @@
+name: Update Screenshots
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'scripts/demo/**'
+      - 'scripts/screenshots-chrome.js'
+  workflow_dispatch:
+  schedule:
+    # Run weekly to ensure screenshots stay fresh
+    - cron: '0 6 * * 1'
+
+jobs:
+  generate-screenshots:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Install Playwright browsers
+      run: npx playwright install chromium
+      
+    - name: Start demo applications
+      run: |
+        cd scripts/demo
+        ./start.sh
+        # Wait for apps to be ready
+        sleep 10
+        
+    - name: Generate Chrome screenshots
+      run: npm run screenshots:chrome
+      
+    - name: Stop demo applications
+      run: |
+        cd scripts/demo
+        ./stop.sh || true
+        
+    - name: Check if screenshots changed
+      id: changes
+      run: |
+        if git diff --quiet docs/assets/screenshots/; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "No screenshot changes detected"
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "Screenshots have been updated"
+        fi
+        
+    - name: Commit updated screenshots
+      if: steps.changes.outputs.changed == 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/assets/screenshots/
+        git commit -m "docs: update automated screenshots
+
+        🤖 Generated with [Claude Code](https://claude.ai/code)
+
+        Co-Authored-By: Claude <noreply@anthropic.com>"
+        git push
+        
+    - name: Summary
+      run: |
+        echo "## Screenshot Update Summary" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ steps.changes.outputs.changed }}" == "true" ]]; then
+          echo "✅ Screenshots were updated and committed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "ℹ️ No changes detected in screenshots" >> $GITHUB_STEP_SUMMARY
+        fi
