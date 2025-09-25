@@ -107,7 +107,7 @@ async function takeScreenshots() {
     console.log('💡 Make sure demo apps are running: cd scripts/demo && ./start.sh');
   }
 
-  await browser.close();
+  await context.close();
 }
 
 // Check if demo apps are running
