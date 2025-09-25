@@ -11,6 +11,9 @@ on:
     # Run weekly to ensure screenshots stay fresh
     - cron: '0 6 * * 1'
 
+permissions:
+  contents: write
+
 jobs:
   generate-screenshots:
     runs-on: ubuntu-latest
