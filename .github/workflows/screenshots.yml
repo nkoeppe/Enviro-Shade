@@ -43,12 +43,12 @@ jobs:
       demo-app1:
         image: demo-app1:latest
         ports:
-          - 3000:80
+          - 3000:8080
           
       demo-app2:
         image: demo-app2:latest
         ports:
-          - 3001:80
+          - 3001:8080
     
     steps:
     - name: Checkout code

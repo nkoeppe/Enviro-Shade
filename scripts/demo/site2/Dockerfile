@@ -1,3 +1,4 @@
-FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/index.html
-EXPOSE 80
+FROM busybox:latest
+COPY index.html /www/index.html
+EXPOSE 8080
+CMD ["busybox", "httpd", "-f", "-v", "-p", "8080", "-h", "/www"]
