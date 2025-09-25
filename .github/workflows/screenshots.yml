@@ -12,14 +12,60 @@ on:
     - cron: '0 6 * * 1'
 
 jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build demo app images
+      run: |
+        cd scripts/demo
+        docker build -t demo-app1:latest ./site1
+        docker build -t demo-app2:latest ./site2
+        
+    - name: Save images
+      run: |
+        docker save demo-app1:latest > /tmp/demo-app1.tar
+        docker save demo-app2:latest > /tmp/demo-app2.tar
+        
+    - name: Upload images
+      uses: actions/upload-artifact@v4
+      with:
+        name: demo-images
+        path: /tmp/demo-app*.tar
+
   generate-screenshots:
     runs-on: ubuntu-latest
+    needs: build-images
+    
+    services:
+      demo-app1:
+        image: demo-app1:latest
+        ports:
+          - 3000:80
+          
+      demo-app2:
+        image: demo-app2:latest
+        ports:
+          - 3001:80
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Download images
+      uses: actions/download-artifact@v4
+      with:
+        name: demo-images
+        path: /tmp/
+        
+    - name: Load images
+      run: |
+        docker load < /tmp/demo-app1.tar
+        docker load < /tmp/demo-app2.tar
         
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -32,24 +78,14 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install chromium
       
-    - name: Pull Docker images
+    - name: Wait for services
       run: |
-        docker pull nginx:alpine || echo "Pull failed, continuing..."
-      
-    - name: Start demo applications
-      run: |
-        cd scripts/demo
-        ./start.sh
-        # Wait for apps to be ready
-        sleep 10
+        echo "Waiting for demo applications..."
+        sleep 15
         
     - name: Generate Chrome screenshots
       run: npm run screenshots:chrome
       
-    - name: Stop demo applications
-      run: |
-        cd scripts/demo
-        ./stop.sh || true
         
     - name: Check if screenshots changed
       id: changes

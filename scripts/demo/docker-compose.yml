@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  demo-app1:
+    build: ./site1
+    ports:
+      - "3000:80"
+    container_name: enviro-shade-demo1
+    
+  demo-app2:
+    build: ./site2
+    ports:
+      - "3001:80"
+    container_name: enviro-shade-demo2
