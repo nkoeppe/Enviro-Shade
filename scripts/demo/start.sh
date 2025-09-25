@@ -2,12 +2,12 @@
 
 echo "Starting demo test applications..."
 
-# Stop any existing containers
-docker-compose down 2>/dev/null || true
+# Stop any existing Node processes
+pkill -f "node start-node.js" 2>/dev/null || true
 
-# Build and start containers
-echo "Building and starting demo applications..."
-docker-compose up -d --build
+# Start Node.js servers
+echo "Starting Node.js demo servers..."
+node start-node.js &
 
 echo ""
 echo "Demo applications are now running:"
