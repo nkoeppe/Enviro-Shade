@@ -1,25 +1,9 @@
-Enviro-Shade browser extension
-Copyright (C) 2025 Nicolas Koeppe
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
-You may use the project commercially, contribute via pull requests, and
-redistribute it under the terms below. Any modified versions you distribute
-must also be licensed under GPL-3.0 and provide source code (strong copyleft).
-Attribution by preserving the copyright and license notices is required.
-
-SPDX-License-Identifier: GPL-3.0-only
-
---------------------------------------------------------------------------
-The following is the full, unmodified text of the GNU General Public License
-version 3, as published by the Free Software Foundation.
---------------------------------------------------------------------------
-
-GNU GENERAL PUBLIC LICENSE
-Version 3, 29 June 2007
-
-Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
-Everyone is permitted to copy and distribute verbatim copies
-of this license document, but changing it is not allowed.
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
 
 Preamble
 
