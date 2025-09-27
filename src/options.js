@@ -1,4 +1,9 @@
 /*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2025 Nicolas Köppe
+ */
+
+/*
   Options UI — v10
   Real overlay preview (content-style) inside .pv-sim.
   - Severity + contrast identical to content script.

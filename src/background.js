@@ -1,4 +1,9 @@
 /*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2025 Nicolas Köppe
+ */
+
+/*
   Combined background script for Manifest V3.
   Order: defaults.js, storage.js, background.js
 */

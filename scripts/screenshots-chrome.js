@@ -1,3 +1,8 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2025 Nicolas Köppe
+ */
+
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');

@@ -1,3 +1,8 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2025 Nicolas Köppe
+ */
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

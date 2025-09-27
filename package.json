@@ -18,7 +18,7 @@
     "tslib": "^2.8.1"
   },
   "keywords": ["browser-extension", "environment", "development", "staging", "production"],
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/nkoeppe/Enviro-Shade.git"

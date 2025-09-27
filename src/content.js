@@ -1,4 +1,9 @@
 /*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2025 Nicolas Köppe
+ */
+
+/*
   Minimal overlay driven by severity:
     high  → stronger watermark, warning emoji, larger chip
     medium→ medium opacity/size

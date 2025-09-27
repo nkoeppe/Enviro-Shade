@@ -108,6 +108,17 @@ try {
 }
 ```
 
+## Contributor License Agreement (CLA)
+
+**IMPORTANT:** All contributors must agree to our CLA before their contributions can be accepted.
+
+By submitting a pull request, you acknowledge that:
+- You have read and agree to the terms in [CLA.md](../CLA.md)
+- You grant full ownership of your contributions to Nicolas Köppe
+- **Nicolas Köppe** may relicense your contributions for commercial use
+
+**First-time contributors:** Please review the [CLA.md](../CLA.md) file in the root directory.
+
 ## Pull Request Process
 
 ### Before Submitting
