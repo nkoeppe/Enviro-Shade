@@ -254,8 +254,7 @@ jobs:
       uses: PlasmoHQ/bpp@v3
       with:
         keys: ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
-        artifact: EnviroShade_${{ steps.version.outputs.version }}.zip
-        chrome-extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+        chrome-file: EnviroShade_${{ steps.version.outputs.version }}.zip
         
     - name: Create GitHub Release
       if: steps.should_publish.outputs.should_publish == 'true'
