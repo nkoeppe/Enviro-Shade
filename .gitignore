@@ -49,3 +49,5 @@ temp/
 .env.test.local
 .env.production.local
 
+
+cws-serviceUser.json
