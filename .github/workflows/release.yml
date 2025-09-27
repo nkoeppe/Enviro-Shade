@@ -249,11 +249,24 @@ jobs:
           Source code: https://github.com/${{ github.repository }}
           Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}
           
+    - name: Create BPP keys configuration
+      if: steps.should_publish.outputs.should_publish == 'true' && vars.PUBLISH_CHROME == 'true'
+      run: |
+        cat > bpp-keys.json << EOF
+        {
+          "\$schema": "https://github.com/PlasmoHQ/bpp/raw/main/keys.schema.json",
+          "chrome": {
+            "zip": "EnviroShade_${{ steps.version.outputs.version }}.zip",
+            "serviceAccount": ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
+          }
+        }
+        EOF
+        
     - name: Publish to Chrome Web Store
       if: steps.should_publish.outputs.should_publish == 'true' && vars.PUBLISH_CHROME == 'true'
       uses: PlasmoHQ/bpp@v3
       with:
-        keys: ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
+        keys: bpp-keys.json
         chrome-file: EnviroShade_${{ steps.version.outputs.version }}.zip
         
     - name: Create GitHub Release
