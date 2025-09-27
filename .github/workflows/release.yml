@@ -249,7 +249,7 @@ jobs:
           Source code: https://github.com/${{ github.repository }}
           Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}
           
-    - name: Publish to Chrome Web Store
+    - name: Publish to Chrome Web Store  
       if: steps.should_publish.outputs.should_publish == 'true' && vars.PUBLISH_CHROME == 'true'
       uses: PlasmoHQ/bpp@v3
       with:
@@ -258,11 +258,14 @@ jobs:
             "$schema": "https://github.com/PlasmoHQ/bpp/raw/main/keys.schema.json",
             "chrome": {
               "zip": "EnviroShade_${{ steps.version.outputs.version }}.zip",
-              "extId": "${{ secrets.CHROME_EXTENSION_ID }}",
-              "serviceAccount": ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
+              "clientId": "${{ secrets.CHROME_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.CHROME_CLIENT_SECRET }}", 
+              "refreshToken": "${{ secrets.CHROME_REFRESH_TOKEN }}",
+              "extId": "${{ secrets.CHROME_EXTENSION_ID }}"
             }
           }
         chrome-file: EnviroShade_${{ steps.version.outputs.version }}.zip
+        verbose: true
         
     - name: Create GitHub Release
       if: steps.should_publish.outputs.should_publish == 'true'
