@@ -258,6 +258,7 @@ jobs:
             "$schema": "https://github.com/PlasmoHQ/bpp/raw/main/keys.schema.json",
             "chrome": {
               "zip": "EnviroShade_${{ steps.version.outputs.version }}.zip",
+              "extId": "${{ secrets.CHROME_EXTENSION_ID }}",
               "serviceAccount": ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
             }
           }
