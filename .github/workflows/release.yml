@@ -251,9 +251,8 @@ jobs:
           
     - name: Publish to Chrome Web Store
       if: steps.should_publish.outputs.should_publish == 'true' && vars.PUBLISH_CHROME == 'true'
-      uses: mobilefirstllc/cws-publish@latest
+      uses: PlasmoHQ/bpp@v3
       with:
-        action: publish
-        google_service_account_key: ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
-        extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
-        zip_file: EnviroShade_${{ steps.version.outputs.version }}.zip
+        keys: ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
+        artifact: EnviroShade_${{ steps.version.outputs.version }}.zip
+        chrome-extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
