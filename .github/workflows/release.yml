@@ -4,6 +4,12 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish even without src/ changes'
+        required: false
+        default: false
+        type: boolean
   
 permissions:
   contents: write
@@ -107,10 +113,14 @@ jobs:
       run: |
         RELEASE_EXISTS="${{ steps.release_exists.outputs.exists }}"
         SRC_CHANGES="${{ steps.src_changes.outputs.has_changes }}"
+        FORCE_PUBLISH="${{ inputs.force_publish }}"
         
         if [ "$RELEASE_EXISTS" = "true" ]; then
           echo "should_publish=false" >> $GITHUB_OUTPUT
           echo "Skipping: Release already exists"
+        elif [ "$FORCE_PUBLISH" = "true" ]; then
+          echo "should_publish=true" >> $GITHUB_OUTPUT
+          echo "Publishing: Forced publish (manual override)"
         elif [ "$SRC_CHANGES" = "false" ]; then
           echo "should_publish=false" >> $GITHUB_OUTPUT
           echo "Skipping: No changes in src/ directory"
@@ -220,16 +230,6 @@ jobs:
         cd ..
         ls -la EnviroShade_${{ steps.version.outputs.version }}.zip
         
-    - name: Create GitHub Release
-      if: steps.should_publish.outputs.should_publish == 'true'
-      run: |
-        gh release create "v${{ steps.version.outputs.version }}" \
-          --title "Enviro-Shade v${{ steps.version.outputs.version }}" \
-          --notes-file release_notes.md \
-          EnviroShade_${{ steps.version.outputs.version }}.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
     - name: Publish to Firefox Add-ons Store
       if: steps.should_publish.outputs.should_publish == 'true' && vars.PUBLISH_FIREFOX == 'true'
       uses: wdzeng/firefox-addon@v1
@@ -256,3 +256,13 @@ jobs:
         keys: ${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}
         artifact: EnviroShade_${{ steps.version.outputs.version }}.zip
         chrome-extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+        
+    - name: Create GitHub Release
+      if: steps.should_publish.outputs.should_publish == 'true'
+      run: |
+        gh release create "v${{ steps.version.outputs.version }}" \
+          --title "Enviro-Shade v${{ steps.version.outputs.version }}" \
+          --notes-file release_notes.md \
+          EnviroShade_${{ steps.version.outputs.version }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
